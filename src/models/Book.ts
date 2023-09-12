@@ -1,12 +1,12 @@
 class Book {
-  id: number;
+  id: number | null;
   title: string;
   author: string;
   genre: string;
   price: number;
   available: boolean;
 
-  constructor(id: number, title: string, author: string, genre: string, price: number, available: boolean) {
+  constructor(id: number | null, title: string, author: string, genre: string, price: number, available: boolean) {
     this.id = id;
     this.title = title;
     this.author = author;
