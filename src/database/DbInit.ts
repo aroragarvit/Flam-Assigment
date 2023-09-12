@@ -23,18 +23,38 @@ class Database {
       if (this.db) {
         this.db.run(
           `
-                CREATE TABLE IF NOT EXISTS users (
-                    id INTEGER PRIMARY KEY AUTOINCREMENT,
-                    username TEXT UNIQUE NOT NULL,
-                    email TEXT UNIQUE NOT NULL,
-                    password TEXT NOT NULL
-                )
-            `,
+            CREATE TABLE IF NOT EXISTS users (
+              id INTEGER PRIMARY KEY AUTOINCREMENT,
+              username TEXT UNIQUE NOT NULL,
+              email TEXT UNIQUE NOT NULL,
+              password TEXT NOT NULL
+            )
+          `,
           (err) => {
             if (err) {
               console.error('Error creating "users" table:', err.message);
             } else {
               console.log('Created "users" table.');
+            }
+          }
+        );
+
+        this.db.run(
+          `
+            CREATE TABLE IF NOT EXISTS books (
+              id INTEGER PRIMARY KEY AUTOINCREMENT,
+              title TEXT NOT NULL,
+              author TEXT NOT NULL,
+              genre TEXT NOT NULL,
+              price REAL NOT NULL,
+              available BOOLEAN NOT NULL
+            )
+          `,
+          (err) => {
+            if (err) {
+              console.error('Error creating "books" table:', err.message);
+            } else {
+              console.log('Created "books" table.');
             }
           }
         );
