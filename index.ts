@@ -1,22 +1,36 @@
 import express, { Express, Request, Response } from 'express';
 import dotenv from 'dotenv';
-import Database from './src/database/DbInit';
-import UserRepository from './src/database/UserRepository';
-import User from './src/models/User';
-import { get } from 'http';
-import UserController from './src/controllers/UserController';
+import session from 'express-session';
+import redis from 'redis';
+import connectRedis from 'connect-redis';
 
+
+import UserRouter from './src/Routes/UserRouter';
 dotenv.config();
 
 const app: Express = express();
 app.use(express.json());
+
+const redisClient = redis.createClient({
+  host : 'localhost',
+  port: REDIS_PORT
+})
+app.use(session({
+  name: process.env.SESS_NAME,
+  resave: false,
+  saveUninitialized: false,
+  store: sessionStore,
+  secret: process.env.SESS_SECRET,
+  cookie: {
+      maxAge: TWO_HOURS,
+      sameSite: true,
+      secure: IN_PROD
+  }
+}))
+
+app.use("/", new UserRouter().router);
 const port = 3000;
 
-app.get('/', (req: Request, res: Response) => {});
-
-app.post('/user', (req: Request, res: Response) => {
-  UserController.addUser(req, res);
-});
 
 app.listen(port, () => {
   console.log(`⚡️[server]: Server is running at http://localhost:${port}`);
