@@ -1,37 +1,34 @@
-import express, { Express, Request, Response } from 'express';
+import express, { Express } from 'express';
 import dotenv from 'dotenv';
 import session from 'express-session';
-import redis from 'redis';
+import UserRouter from './src/routes/UserRouter';
+import * as redis from 'redis';
 import connectRedis from 'connect-redis';
-
-
-import UserRouter from './src/Routes/UserRouter';
-dotenv.config();
 
 const app: Express = express();
 app.use(express.json());
 
+const url = process.env.REDIS_URL || 'redis://localhost:6379';
 const redisClient = redis.createClient({
-  host : 'localhost',
-  port: REDIS_PORT
-})
-app.use(session({
-  name: process.env.SESS_NAME,
-  resave: false,
-  saveUninitialized: false,
-  store: sessionStore,
-  secret: process.env.SESS_SECRET,
-  cookie: {
-      maxAge: TWO_HOURS,
-      sameSite: true,
-      secure: IN_PROD
-  }
-}))
+    url
+});
 
+const RedisStore = connectRedis(session);
+
+const sessionOptions: session.SessionOptions = {
+  secret: 'mysecret',
+  store: new RedisStore({
+    host: 'localhost',
+    port: 6379,
+    client: redisClient as any,
+  }),
+  saveUninitialized: false,
+  resave: false,
+};
+
+app.use(session(sessionOptions));
 app.use("/", new UserRouter().router);
 const port = 3000;
-
-
 app.listen(port, () => {
   console.log(`⚡️[server]: Server is running at http://localhost:${port}`);
 });

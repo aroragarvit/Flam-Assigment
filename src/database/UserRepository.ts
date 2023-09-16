@@ -1,5 +1,6 @@
 import Database from './DbInit';
 import User from '../models/User';
+import {Hashing} from '../utils/Hashing';
 
 class UserRepository {
   public async addUser(user: User): Promise<void> {
@@ -13,10 +14,11 @@ class UserRepository {
       if (!user) {
         throw new Error('User object is undefined');
       }
-      db.run('INSERT INTO users (username, email, password) VALUES (?, ?, ?)', [
+      const hashedPassword = Hashing.HashPassword(user.getPassword());
+      await db.run('INSERT INTO users (username, email, password) VALUES (?, ?, ?)', [
         user.getUsername(),
         user.getEmail(),
-        user.getPassword(),
+        hashedPassword
       ]);
     } catch (err) {
       console.log(err);
@@ -24,35 +26,33 @@ class UserRepository {
     }
   }
 
-  public async getUser(useremail: string): Promise<void> {
+  public async getUser(useremail: string): Promise<User|undefined> {
     const DatabaseInstance = Database.getInstance();
     const db = DatabaseInstance.getDb();
     try {
       if (!db) {
         throw new Error('Database connection error');
       }
-      const Dbuser = db.run('SELECT * FROM users WHERE email = ?', [useremail]);
-      console.log(user);
-      const User = User.getInstance(Dbuser.username, Dbuser.email, Dbuser.password);
-      return User;
-    } catch (err) {
+      const query = 'SELECT * FROM users WHERE email = ?';
+      const userRow = await new Promise<any>((resolve, reject) => {  // you need to make promise and await to that promise if you can promisify some function then you can use that function directly
+        db.get(query, [useremail], (err, row) => {              // db.get is callback function so you need to promisify it
+          if (err) {
+            reject(err);
+          }
+          resolve(row);
+        });
+      });
+     if (userRow) {
+      const user = User.getInstance(userRow.username, userRow.email, userRow.password);
+      return user;
+      } 
+    }
+    catch (err) {
       console.log(err);
       throw err;
     }
   }
 
-  public async deleteUser(useremail: string): Promise<void> {
-    const DatabaseInstance = Database.getInstance();
-    const db = DatabaseInstance.getDb();
-    try {
-      if (!db) {
-        throw new Error('Database connection error');
-      }
-      db.run('DELETE FROM users WHERE email = ?', [useremail]);
-    } catch (err) {
-      console.log(err);
-      throw err;
-    }
-  }
 }
 export default UserRepository;
+

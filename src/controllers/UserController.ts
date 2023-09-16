@@ -1,9 +1,10 @@
 import UserRepository from '../database/UserRepository';
 import User from '../models/User';
 import { Request, Response } from 'express';
-import bcrypt from 'bcrypt';
 import dotenv from 'dotenv';
 import session from 'express-session';
+import {Hashing} from '../utils/Hashing';
+
 
 dotenv.config();
 
@@ -16,19 +17,18 @@ class UserController {
         res.status(400).send('Missing parameters');
         return;
       }
-      const salt = await bcrypt.genSalt(parseInt(process.env.SALT_WORK_FACTOR));
-      const hashedPassword = await bcrypt.hash(password, salt);
-      const user = User.getInstance(username, email, hashedPassword);
-      if(await UserRepository.getUser(email)){
+      
+      const user = User.getInstance(username, email, password); // here user object is created first time 
+      if(await userRepository.getUser(email)){
         res.status(400).send('User already exists');
         return;
       }
       await userRepository.addUser(user);
-      req.session.user = user; // Store the user in the session
+      req.session.user = user;                                                          // we are storing user object in session storage with key user and value user object and express session will automatically send cookie to client with session id and it will store in browser and it will send with every request to server and when we want to check if user is logged in or not we will check if session has user object or not by checking req.session.user it sends session id 
       res.status(200).send('User added successfully');
     } catch (err) {
       console.error(err);
-      res.status(500).send('Internal Server Error');
+      res.status(500).send(`Internal Server Error ${err}`);
     }
   }
 
@@ -42,17 +42,16 @@ class UserController {
         res.status(400).send('Missing parameters');
         return;
          }
-        if(req.session.user){
+        if(req.session.user){                                         
             res.status(400).send('Already logged in');
             return;
         }
-
         if (!user) {
             res.status(404).send('User not found');
             return;
         }
 
-        const validPassword = await bcrypt.compare(password, user.getPassword());
+        const validPassword = await Hashing.ComparePassword(password, user.getPassword());
         if (!validPassword) {
             res.status(401).send('Invalid password');
             return;
@@ -62,7 +61,20 @@ class UserController {
         res.status(200).send('Login successful');
         } catch (err) {
         console.error(err);
-        res.status(500).send('Internal Server Error');
+        res.status(500).send(`Internal Server Error ${err}`);
+        }
+    }
+
+    public static async CheckLogin(req: Request, res: Response): Promise<void> {
+        try {
+            if(req.session.user){               
+                res.status(200).send('User is logged in');
+            }else{
+                res.status(400).send('User is not logged in');
+            }
+        } catch (err) {
+            console.error(err);
+            res.status(500).send(`Internal Server Error ${err}`);
         }
     }
 
@@ -78,17 +90,7 @@ class UserController {
       });
     } catch (err) {
       console.error(err);
-      res.status(500).send('Internal Server Error');
-    }
+      res.status(500).send(`Internal Server Error ${err}`);    }
   }
-
-  public static LoggedInUser(req:Request, res:Response){
-    if(req.session.user){
-      res.status(200).send(req.session.user);
-    }else{
-      res.status(400).send('No user logged in');
-    }
-  }
-    
   }
 export default UserController;
